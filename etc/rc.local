@@ -1,0 +1,21 @@
+#!/bin/bash
+set -e
+
+# package up nginx and its files and put it into shared volume
+
+mkdir -p /tmp/nginx-rtmp
+items=(
+    /usr/sbin/nginx /tmp/nginx-rtmp/usr/sbin/nginx
+    /etc/nginx /tmp/nginx-rtmp/etc/nginx
+    /usr/share/nginx /tmp/nginx-rtmp/usr/share/nginx
+);
+
+for ((i;i<${#items[@]};i = i + 2)); do
+    mkdir -p $(dirname ${items[$i+1]});
+    cp -R ${items[$i]} ${items[$i+1]}
+done
+
+cd /tmp
+tar cf nginx-rtmp.tgz nginx-rtmp
+mkdir /compiled
+mv nginx-rtmp.tgz /compiled/
