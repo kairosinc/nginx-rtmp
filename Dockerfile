@@ -1,34 +1,65 @@
-FROM phusion/baseimage:0.9.18
-MAINTAINER cole@kairos.com
+FROM alpine:3.4
+MAINTAINER Jason Rivers <docker@jasonrivers.co.uk>
 
-RUN echo 'APT::Install-Recommends 0;' >> /etc/apt/apt.conf.d/01norecommends \
- && echo 'APT::Install-Suggests 0;' >> /etc/apt/apt.conf.d/01norecommends \
- && export DEBIAN_FRONTEND=noninteractive \
- && apt-get update -qq \
- && apt-get install -yqq \
-    gcc g++ make libc6-dev libpcre++-dev libssl-dev libxslt-dev libgd2-xpm-dev libgeoip-dev \
-    perl libssl1.0.0 libxslt1.1 libgd3 libxpm4 libgeoip1 libav-tools \
-    vim.tiny curl \
- && apt-get autoremove -y \
- && apt-get clean \
- && apt-get autoclean
+ENV NGINX_VERSION 1.9.15
 
-# sudo tcpdump net-tools ca-certificates libluajit-5.1-dev
+RUN	apk update			\
+ && apk add				\
+		git			    \
+		gcc		    	\
+		binutils-libs	\
+		binutils		\
+		gmp			    \
+		isl			    \
+		libgomp			\
+		libatomic		\
+		libgcc			\
+		openssl			\
+		pkgconf			\
+		pkgconfig		\
+		mpfr3			\
+		mpc1			\
+		libstdc++		\
+		ca-certificates	\
+		libssh2			\
+		curl			\
+		expat			\
+		pcre			\
+		musl-dev		\
+		libc-dev		\
+		pcre-dev		\
+		zlib-dev		\
+		openssl-dev		\
+		make            \
+ &&	cd /tmp/	        \
+ && wget http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz \
+ && git clone https://github.com/arut/nginx-rtmp-module.git \
+ && cd /tmp \
+ &&	tar xzf nginx-${NGINX_VERSION}.tar.gz \
+ &&	cd nginx-${NGINX_VERSION} \
+ && ./configure --prefix=/usr/share/nginx  \
+                --conf-path=/etc/nginx/nginx.conf \
+                --sbin-path=/usr/sbin \
+                --http-log-path=/var/log/nginx/access.log \
+                --error-log-path=/var/log/nginx/error.log \
+                --lock-path=/var/lock/nginx.lock \
+                --pid-path=/run/nginx.pid \
+                --http-client-body-temp-path=/tmp/body \
+                --http-fastcgi-temp-path=/tmp/fastcgi \
+                --http-proxy-temp-path=/tmp/proxy \
+                --http-scgi-temp-path=/tmp/scgi \
+                --http-uwsgi-temp-path=/tmp/uwsgi \
+                --with-pcre-jit \
+                --with-ipv6 \
+                --with-http_ssl_module \
+                --with-http_realip_module \
+                --with-http_addition_module \
+                --add-module=../nginx-rtmp-module \
+ &&	make && make install
 
-# copy deps and download deps (do not merge with other copies so caching works)
-COPY deps.sh /tmp/deps.sh
-RUN bash -c 'source /tmp/deps.sh && \
-    for ((i=0;i<${#deps[@]};i++)); do \
-        url=${deps[$i]}; \
-        base=$(basename $url); \
-        curl -L $url -o /tmp/$base; \
-        mkdir -p ${target_dirs[$i]} && tar -zxf /tmp/$base --strip=1 -C ${target_dirs[$i]}; \
-    done'
+RUN	cd /etc/ 	&&	\
+	tar cvzf /tmp/nginx-rtmp.tar.gz nginx /usr/sbin/nginx
 
-# copy and run the rest (do not merge with other copies so caching works)
-COPY compile.sh /tmp/compile.sh
-COPY etc/rc.local /etc/rc.local
-RUN chmod +x /tmp/compile.sh \
- && /tmp/compile.sh \
- && chmod +x /etc/rc.local \
- && rm -Rf /tmp/* /var/lib/apt/lists/*;
+EXPOSE 1935
+
+CMD ["/sbin/nginx", "-g", "daemon off;"]

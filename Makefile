@@ -1,10 +1,11 @@
 .PHONY: build copy rm run
 
 build:
-	docker build --no-cache -t kairos/nginx-rtmp .
+	docker build --no-cache -t nginx-rtmp .
 copy:
-	docker cp nginx-rtmp:/compiled/nginx-rtmp.tgz .
+	DID=`docker create nginx-rtmp`
+	docker cp ${DID}:/tmp/nginx-rtmp.tar.gz dist/
 rm:
 	docker rm nginx-rtmp
 run:
-	docker rm nginx-rtmp 2>/dev/null; docker run --name nginx-rtmp kairos/nginx-rtmp /sbin/my_init -- find /compiled
+	docker run -p 1935:1935 -p 80:80 nginx-rtmp
