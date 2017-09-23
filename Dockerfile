@@ -62,4 +62,4 @@ RUN	cd /etc/ 	&&	\
 
 EXPOSE 1935
 
-CMD ["/sbin/nginx", "-g", "daemon off;"]
+CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
